@@ -1,0 +1,43 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+    test:
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix:
+                # 多平台：Linux、Windows、macOS
+                os: [ubuntu-latest, windows-latest, macos-latest]
+                # 多Python版本（根据你的库支持范围调整）
+                python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+        steps:
+            - uses: actions/checkout@v4 # 拉取代码
+
+            - name: Set up Python ${{ matrix.python-version }}
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  cache: "pip" # 缓存依赖，加速安装
+
+            - name: Install dependencies
+              run: |
+                  python -m pip install --upgrade pip
+                  # 安装项目（可编辑模式）+ 开发依赖（pytest、mypy等）
+                  pip install -e ".[dev]"
+
+            - name: Run type check (mypy)
+              # 类型检查目标：src/buildrule/（你的源码目录）
+              run: mypy src/buildrule/
+
+            - name: Run tests (pytest)
+              # 运行tests/目录下的所有测试，覆盖率统计指向src/buildrule/
+              run: pytest tests/ --cov=src/buildrule --cov-report=term # 可选：添加--cov-report=xml生成覆盖率报告
+
+            # 可选：上传覆盖率报告到Codecov（需在GitHub仓库添加CODECOV_TOKEN密钥）
+            - name: Upload coverage to Codecov
+              uses: codecov/codecov-action@v3
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  file: ./coverage.xml # 对应上面--cov-report=xml生成的文件

@@ -1,0 +1,44 @@
+[build-system]
+# 指定构建后端和依赖（必须）
+requires = ["setuptools>=61.0", "wheel"] # 用setuptools构建
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "buildrule" # 库的名称（PyPI上的唯一标识，小写+连字符）
+version = "0.0.1" # 版本号（遵循语义化版本：MAJOR.MINOR.PATCH）
+authors = [{ name = "Chuyiieey", email = "chuyiieey@outlook.com" }]
+description = "A flexible, extensible rule engine library for building and evaluating complex business rules" # 一句话描述
+readme = "README.md" # 关联README
+requires-python = ">=3.8" # 支持的最低Python版本
+license = { file = "LICENSE" }
+classifiers = [ # 分类标签（帮助PyPI检索）
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Libraries",
+    "Intended Audience :: Developers",
+    "Development Status :: 3 - Alpha",
+]
+
+# 依赖项（用户安装时自动安装）
+dependencies = [
+    # 例如："requests>=2.25.0",  # 如果你的库依赖requests
+]
+
+# 可选：开发依赖（仅开发时需要，如测试工具）
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",     # 测试框架
+    "pytest-cov>=4.0", # 测试覆盖率
+    "mypy>=1.0",       # 类型检查
+    "black>=23.0",     # 代码格式化
+    "sphinx>=7.0",     # 文档生成
+]
+
+[tool.setuptools.packages]
+find = {where=["src"]}
