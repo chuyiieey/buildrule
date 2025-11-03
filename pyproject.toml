@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "buildrule" # 库的名称（PyPI上的唯一标识，小写+连字符）
-version = "0.0.1" # 版本号（遵循语义化版本：MAJOR.MINOR.PATCH）
+version = "0.0.2" # 版本号（遵循语义化版本：MAJOR.MINOR.PATCH）
 authors = [{ name = "Chuyiieey", email = "chuyiieey@outlook.com" }]
 description = "A flexible, extensible rule engine library for building and evaluating complex business rules" # 一句话描述
 readme = "README.md" # 关联README
