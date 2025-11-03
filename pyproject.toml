@@ -5,15 +5,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "buildrule" # 库的名称（PyPI上的唯一标识，小写+连字符）
-version = "0.0.2" # 版本号（遵循语义化版本：MAJOR.MINOR.PATCH）
+version = "0.0.1" # 版本号（遵循语义化版本：MAJOR.MINOR.PATCH）
 authors = [{ name = "Chuyiieey", email = "chuyiieey@outlook.com" }]
 description = "A flexible, extensible rule engine library for building and evaluating complex business rules" # 一句话描述
 readme = "README.md" # 关联README
-requires-python = ">=3.8" # 支持的最低Python版本
+requires-python = ">=3.9" # 支持的最低Python版本
 license = { file = "LICENSE" }
 classifiers = [ # 分类标签（帮助PyPI检索）
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
