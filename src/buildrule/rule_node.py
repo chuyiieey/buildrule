@@ -12,7 +12,7 @@ dictionary object verification and other scenarios with high extensibility.
 
 import inspect
 from enum import Enum
-from typing import Generic, Optional, TypeVar, Dict, ClassVar, Any
+from typing import Generic, Optional, TypeVar, Dict, ClassVar, Any, List, Tuple, Type
 
 
 # 自定义异常定义
@@ -29,6 +29,7 @@ class InvalidXMLError(Exception):
 # 类型变量定义（泛型支持）
 # Type Variable Definition (Generic Support)
 ConditionType = TypeVar("ConditionType")  # 规则判断的输入数据类型
+RuleNodeType = TypeVar("RuleNodeType", bound="RuleNode")  # 规则节点类型变量
 # Input data type for rule evaluation
 
 
@@ -53,13 +54,13 @@ class RuleNode(Generic[ConditionType]):
     Automatically implements subclass registration, type_name generation, and serialization/deserialization.
 
     Attributes:
-        _type_registry (ClassVar[Dict[str, type["RuleNode"]]]): 子类注册表，存储类型名与类的映射
-                                                                Subclass registry, storing mappings of type names to classes
+        _type_registry (ClassVar[Dict[str, type]]): 子类注册表，存储类型名与类的映射
+                                                Subclass registry, storing mappings of type names to classes
         type_name (ClassVar[str]): 规则类型名（自动生成，子类无需手动声明）
                                    Rule type name (automatically generated, no manual declaration required for subclasses)
     """
 
-    _type_registry: ClassVar[Dict[str, type["RuleNode"]]] = {}
+    _type_registry: ClassVar[Dict[str, Type['RuleNode']]] = {}
     type_name: ClassVar[str]  # 子类可显式声明此属性
 
     def __init_subclass__(cls, **kwargs):
@@ -105,7 +106,7 @@ class RuleNode(Generic[ConditionType]):
 
     def and_(self, other: "RuleNode") -> "AndNode":
         """
-        逻辑AND组合：将当前规则与另一规则组合为“同时满足”的逻辑。
+        逻辑AND组合：将当前规则与另一规则组合为"同时满足"的逻辑。
 
         Logical AND combination: combines the current rule with another rule into "both satisfy" logic.
 
@@ -121,7 +122,7 @@ class RuleNode(Generic[ConditionType]):
 
     def or_(self, other: "RuleNode") -> "OrNode":
         """
-        逻辑OR组合：将当前规则与另一规则组合为“满足其一”的逻辑。
+        逻辑OR组合：将当前规则与另一规则组合为"满足其一"的逻辑。
 
         Logical OR combination: combines the current rule with another rule into "either satisfies" logic.
 
@@ -235,7 +236,9 @@ class RuleNode(Generic[ConditionType]):
             raise ValueError(f"Unknown rule type: {type_name} (not in registry)")
 
         # 调用对应类型的反序列化方法
-        return cls._type_registry[type_name].deserialize(data)
+        rule_class = cls._type_registry[type_name]
+        return rule_class.deserialize(data)
+
 
     @staticmethod
     def _serialize_arg(arg: Any) -> str:
@@ -264,7 +267,17 @@ class RuleNode(Generic[ConditionType]):
 
     @staticmethod
     def _deserialize_arg(arg_str: str) -> Any:
-        """辅助方法：反序列化单个参数（内部使用）"""
+        """
+        辅助方法：反序列化单个参数（内部使用）
+
+        Args:
+            arg_str (str): 待反序列化的参数字符串
+                          Parameter string to be deserialized
+
+        Returns:
+            Any: 反序列化后的参数值
+                Deserialized parameter value
+        """
         if not arg_str:
             return None
         # 处理字符串（带引号）：去除引号并恢复转义
@@ -289,7 +302,7 @@ class RuleNode(Generic[ConditionType]):
             return arg_str
 
     @staticmethod
-    def _split_args(content: str) -> list[str]:
+    def _split_args(content: str) -> List[str]:
         """
         辅助方法：分割参数列表（支持嵌套括号场景）。
 
@@ -300,11 +313,11 @@ class RuleNode(Generic[ConditionType]):
                            Total parameter string inside parentheses
 
         Returns:
-            list[str]: 分割后的单个参数字符串列表
+            List[str]: 分割后的单个参数字符串列表
                        List of split individual parameter strings
         """
-        args: list[str] = []
-        current: list[str] = []
+        args: List[str] = []
+        current: List[str] = []
         balance: int = 0  # 括号平衡计数器：处理嵌套括号
         # Parentheses balance counter: handle nested parentheses
         for c in content:
@@ -347,7 +360,17 @@ class AndNode(RuleNode[ConditionType]):
         self.right = right
 
     def evaluate(self, condition: ConditionType) -> bool:
-        """执行AND逻辑判断：左右子规则均满足则返回True"""
+        """
+        执行AND逻辑判断：左右子规则均满足则返回True
+
+        Args:
+            condition (ConditionType): 规则判断的输入数据
+                                      Input data for rule evaluation
+
+        Returns:
+            bool: 规则判断结果
+                  Rule evaluation result
+        """
         return self.left.evaluate(condition) and self.right.evaluate(condition)
 
 
@@ -371,7 +394,17 @@ class OrNode(RuleNode[ConditionType]):
         self.right = right
 
     def evaluate(self, condition: ConditionType) -> bool:
-        """执行OR逻辑判断：任意子规则满足则返回True"""
+        """
+        执行OR逻辑判断：任意子规则满足则返回True
+
+        Args:
+            condition (ConditionType): 规则判断的输入数据
+                                      Input data for rule evaluation
+
+        Returns:
+            bool: 规则判断结果
+                  Rule evaluation result
+        """
         return self.left.evaluate(condition) or self.right.evaluate(condition)
 
 
@@ -392,7 +425,17 @@ class NotNode(RuleNode[ConditionType]):
         self.node = node
 
     def evaluate(self, condition: ConditionType) -> bool:
-        """执行NOT逻辑判断：返回子规则结果的反值"""
+        """
+        执行NOT逻辑判断：返回子规则结果的反值
+
+        Args:
+            condition (ConditionType): 规则判断的输入数据
+                                      Input data for rule evaluation
+
+        Returns:
+            bool: 规则判断结果
+                  Rule evaluation result
+        """
         return not self.node.evaluate(condition)
 
 
@@ -403,51 +446,40 @@ class RuleBuilder(Generic[ConditionType]):
     Rule Builder: simplifies the combination of complex rules through method chaining (supports grouped logic).
 
     Attributes:
-        stack (list[tuple[Optional[RuleNode], Optional[RuleNode], Optional[str]]]):
+        stack (List[Tuple[Optional[RuleNode], Optional[RuleNode], Optional[str]]]):
             规则构建栈，存储当前层级的规则状态：(当前规则, 待组合规则, 逻辑运算符)
             Rule building stack, storing the current level's rule state: (current_rule, pending_rule, logic_operator)
     """
 
     def __init__(self):
         # 栈初始化：初始状态为(无当前规则, 无待组合规则, 无逻辑运算符)
-        self.stack: list[
-            tuple[
-                Optional[RuleNode[ConditionType]],
-                Optional[RuleNode[ConditionType]],
-                Optional[str],
-            ]
-        ] = [(None, None, None)]
+        self.stack: List[Tuple[Optional[RuleNode[ConditionType]], Optional[RuleNode[ConditionType]], Optional[str]]] = [(None, None, None)]
 
     @property
-    def current_level(
-        self,
-    ) -> tuple[
-        Optional[RuleNode[ConditionType]],
-        Optional[RuleNode[ConditionType]],
-        Optional[str],
-    ]:
-        """获取当前栈顶的规则状态（当前层级）"""
+    def current_level(self) -> Tuple[Optional[RuleNode[ConditionType]], Optional[RuleNode[ConditionType]], Optional[str]]:
+        """
+        获取当前栈顶的规则状态（当前层级）
+
+        Returns:
+            Tuple[Optional[RuleNode[ConditionType]], Optional[RuleNode[ConditionType]], Optional[str]]: 
+                当前规则、待组合规则、逻辑运算符
+        """
         return self.stack[-1]
 
     @current_level.setter
-    def current_level(
-        self,
-        value: tuple[
-            Optional[RuleNode[ConditionType]],
-            Optional[RuleNode[ConditionType]],
-            Optional[str],
-        ],
-    ):
-        """更新当前栈顶的规则状态（当前层级）"""
+    def current_level(self, value: Tuple[Optional[RuleNode[ConditionType]], Optional[RuleNode[ConditionType]], Optional[str]]) -> None:
+        """
+        更新当前栈顶的规则状态（当前层级）
+
+        Args:
+            value (Tuple[Optional[RuleNode[ConditionType]], Optional[RuleNode[ConditionType]], Optional[str]]):
+                新的规则状态值
+        """
         self.stack[-1] = value
 
-    def condition(
-        self, condition_node: RuleNode[ConditionType]
-    ) -> "RuleBuilder[ConditionType]":
+    def condition(self, condition_node: RuleNode[ConditionType]) -> "RuleBuilder[ConditionType]":
         """
         添加基础规则节点（核心方法）。
-
-        Adds a basic rule node (core method).
 
         Args:
             condition_node (RuleNode[ConditionType]): 待添加的规则节点
