@@ -1,43 +1,52 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  # 主要针对test标签和PR
+  push:
+    tags: ['*test*']  # 当推送包含test的标签时触发
+  pull_request:  # 保留PR触发，用于日常开发
 
 jobs:
-    test:
-        runs-on: ${{ matrix.os }}
-        strategy:
-            matrix:
-                # 多平台：Linux、Windows、macOS
-                os: [ubuntu-latest, windows-latest, macos-latest]
-                # 多Python版本（根据你的库支持范围调整）
-                python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # 多平台：Linux、Windows、macOS
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        # 多Python版本
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
 
-        steps:
-            - uses: actions/checkout@v4 # 拉取代码
+    steps:
+      - uses: actions/checkout@v4
 
-            - name: Set up Python ${{ matrix.python-version }}
-              uses: actions/setup-python@v5
-              with:
-                  python-version: ${{ matrix.python-version }}
-                  cache: "pip" # 缓存依赖，加速安装
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
 
-            - name: Install dependencies
-              run: |
-                  python -m pip install --upgrade pip
-                  # 安装项目（可编辑模式）+ 开发依赖（pytest、mypy等）
-                  pip install -e ".[dev]"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
 
-            - name: Run type check (mypy)
-              # 类型检查目标：src/buildrule/（你的源码目录）
-              run: mypy src/buildrule/
+      - name: Run type check (mypy)
+        run: mypy src/buildrule/
 
-            - name: Run tests (pytest)
-              # 运行tests/目录下的所有测试，覆盖率统计指向src/buildrule/
-              run: pytest tests/ --cov=src/buildrule --cov-report=term # 可选：添加--cov-report=xml生成覆盖率报告
+      - name: Run tests (pytest)
+        run: pytest tests/ --cov=src/buildrule --cov-report=term
 
-            # 可选：上传覆盖率报告到Codecov（需在GitHub仓库添加CODECOV_TOKEN密钥）
-            - name: Upload coverage to Codecov
-              uses: codecov/codecov-action@v3
-              with:
-                  token: ${{ secrets.CODECOV_TOKEN }}
-                  file: ./coverage.xml # 对应上面--cov-report=xml生成的文件
+  # 删除test标签的作业，无论测试是否通过都会执行
+  cleanup-test-tag:
+    needs: [test]  # 等待测试作业完成
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/') && contains(github.ref, 'test')
+    steps:
+      - name: Delete test tag
+        run: |
+          # 获取标签名
+          TEST_TAG="${GITHUB_REF#refs/tags/}"
+          # 使用GitHub API删除远程标签
+          curl -X DELETE \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/git/refs/tags/$TEST_TAG"

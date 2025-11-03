@@ -1,24 +1,23 @@
 name: Publish to PyPI
 
 on:
-  # 不再直接由标签推送触发，而是在CI工作流成功完成后触发
+  # 监听CI工作流，只有当推送test标签且CI成功时才触发
   workflow_run:
-    workflows: ["CI"]  # 监听名为"CI"的工作流
+    workflows: ["CI"]
     types:
-      - completed  # 只有当工作流完成时才触发
-    tags: ['v*.*.*']  # 仍然只针对标签推送
+      - completed
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
-    # 只有当CI工作流成功完成时才运行这个作业
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # 只有当CI工作流成功完成且触发源包含test标签时才运行
+    if: ${{ github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'refs/tags/') && contains(github.event.workflow_run.head_branch, 'test') }}
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 拉取完整历史，用于版本号生成
-          # 使用工作流运行的SHA值来获取正确的代码
-          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
+          # 获取触发CI的提交SHA
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -41,3 +40,22 @@ jobs:
         run: |
           twine check dist/*
           twine upload --skip-existing dist/*
+
+      - name: Get version from pyproject.toml
+        id: get_version
+        run: |
+          # 从pyproject.toml中提取版本号
+          VERSION=$(grep 'version =' pyproject.toml | cut -d'"' -f2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create and push version tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 创建版本标签
+          VERSION_TAG="v${{ steps.get_version.outputs.version }}"
+          git config --local user.name "GitHub Actions"
+          git config --local user.email "actions@github.com"
+          git tag $VERSION_TAG
+          # 推送到远程仓库
+          git push origin $VERSION_TAG
