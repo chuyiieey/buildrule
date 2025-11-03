@@ -257,7 +257,8 @@ class RuleNode(Generic[ConditionType]):
             return arg.serialize()
         # 字符串：添加引号并转义内部引号
         if isinstance(arg, str):
-            return f'"{arg.replace('"', '\\"')}"'
+            escaped_arg = arg.replace('"', '\\"')
+            return '"' + escaped_arg + '"'
         # 其他类型（数字、布尔等）：直接转字符串
         return str(arg)
 

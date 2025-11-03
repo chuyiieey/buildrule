@@ -10,7 +10,7 @@ jobs:
                 # 多平台：Linux、Windows、macOS
                 os: [ubuntu-latest, windows-latest, macos-latest]
                 # 多Python版本（根据你的库支持范围调整）
-                python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+                python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
 
         steps:
             - uses: actions/checkout@v4 # 拉取代码
